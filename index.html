@@ -1,0 +1,153 @@
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<body>
+  <script>
+
+    async function getGalleries() {
+      try {
+        const response = await fetch('https://23qnp6pm-4001.brs.devtunnels.ms/api/galerias/virtuales/descriptors');
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching galleries:', error);
+        throw error;
+      }
+    }
+
+    function loadGalleriesList(allGalleries) {
+      const galleriesContainer = document.querySelector('#galleries-list')
+      for (let index = 0; index < allGalleries.length; index++) {
+        const gallery = allGalleries[index]
+        galleriesContainer.innerHTML += `
+        <li class="list-item">
+            <input type="radio" id="gallery${index}" name="gallery" value=${index} class="radio-button">
+            <label for="gallery${index}">${gallery.nombre}</label>
+        </li>
+      `
+      }
+      document.getElementById('selectButton').addEventListener('click', () => {
+        const selectedRadio = document.querySelector('input[name="gallery"]:checked');
+        if (selectedRadio) {
+            loadChoosedGalleryScene(allGalleries[selectedRadio.value])
+            loadArLogic()
+        }
+      });
+    }
+
+    function loadChoosedGalleryScene({galeria_archivo_mind}) {
+      const aScene = document.querySelector('a-scene')
+      aScene.setAttribute('mindar-image', galeria_archivo_mind)
+      aScene.setAttribute('color-space', "sRGB")
+      aScene.setAttribute('vr-mode-ui', "enabled: false" )
+      aScene.setAttribute('device-orientation-permission-ui', "enabled: false")
+
+      const overlay = document.querySelector('.overlay')
+      overlay.style.display = 'none'
+
+    }
+    
+    function loadArLogic() {
+      const sceneEl = document.querySelector('a-scene');
+      let arSystem;
+
+      sceneEl.addEventListener('loaded', function () {
+        arSystem = sceneEl.systems["mindar-image-system"];
+      });
+
+      const alumnos = [
+        "Alumno 01.mp4", "Alumno 02.mp4", "Alumno 03.mp4", "Alumno 04.mp4", "Alumno 05.mp4",
+        "Alumno 06.mp4", "Alumno 07.mp4", "Alumno 08.mp4", "Alumno 09.mp4", "Alumno 10.mp4"
+      ];
+
+      for (let index = 0; index < alumnos.length; index++) {
+        const alumno = alumnos[index];
+        sceneEl.innerHTML += `
+          <a-entity mindar-image-target="targetIndex: ${index}" id="entity${index}">
+            <a-video src="#vid1" rotation="0 0 0 " position="0 0 0" scale="1 1 1" id="video${index}"></a-video>
+          </a-entity>`;
+      }
+
+      const startButton = document.querySelector("#example-start-button");
+      const stopButton = document.querySelector("#example-stop-button");
+      const pauseButton = document.querySelector("#example-pause-button");
+      const pauseKeepVideoButton = document.querySelector("#example-pause-keep-video-button");
+      const unpauseButton = document.querySelector("#example-unpause-button");
+
+      startButton.addEventListener('click', () => arSystem.start());
+      stopButton.addEventListener('click', () => arSystem.stop());
+      pauseButton.addEventListener('click', () => arSystem.pause());
+      pauseKeepVideoButton.addEventListener('click', () => arSystem.pause(true));
+      unpauseButton.addEventListener('click', () => arSystem.unpause());
+
+      sceneEl.addEventListener("arReady", () => console.log("MindAR is ready"));
+      sceneEl.addEventListener("arError", () => console.log("MindAR failed to start"));
+
+      alumnos.forEach((alumno, index) => {
+        const exampleTarget = document.getElementById(`entity${index}`);
+
+        exampleTarget.addEventListener("targetFound", () => {
+          const video = document.querySelector('#vid1');
+          video.setAttribute('src', `videos/${alumno}`);
+          video.setAttribute('currentTime', 0);
+          video.play();
+        });
+
+        exampleTarget.addEventListener("targetLost", () => {
+          const video = document.querySelector('#vid1');
+          video.pause();
+        });
+
+        const exampleVideo = document.getElementById(`video${index}`);
+        exampleVideo.addEventListener("click", () => console.log("plane click"));
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      getGalleries()
+        .then((allGalleries) => {
+          loadGalleriesList(allGalleries)
+        })
+    });
+
+  </script>
+
+    <div class="overlay">
+      <div class="content-container">
+          <span class="title">Elige La Galeria a utilizar:</span>
+          <ul class="list" id="galleries-list">
+            
+          </ul>
+
+        <button id="selectButton" class="button">Seleccionar</button>
+      </div>
+    </div>
+    
+
+    <div style="position: absolute; z-index: 1000">
+      <button id="example-start-button">Start</button>
+      <button id="example-stop-button">Stop</button>
+      <!-- <button id="example-pause-button">Pause</button>
+      <button id="example-pause-keep-video-button">Pause (keep video)</button>  -->
+      <!-- <button id="example-unpause-button">UnPause</button>  -->
+    </div>
+
+    <a-scene >
+      <a-assets>
+        <video src="" id="vid1" response-type="arraybuffer" loop crossorigin>
+        </video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    </a-scene> 
+  </div>
+</body>
+
+</html>
