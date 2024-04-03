@@ -10,6 +10,13 @@
 
 <body>
   <script>
+    let arSystem;
+
+    function hideGalleriesList(params) {
+      const overlay = document.querySelector('.overlay')
+      overlay.style.display = 'none'
+    }
+
 
     async function getGalleries() {
       try {
@@ -27,77 +34,70 @@
       for (let index = 0; index < allGalleries.length; index++) {
         const gallery = allGalleries[index]
         galleriesContainer.innerHTML += `
-        <li class="list-item">
-            <input type="radio" id="gallery${index}" name="gallery" value=${index} class="radio-button">
-            <label for="gallery${index}">${gallery.nombre}</label>
-        </li>
-      `
+        <button type="button"  class=list-item id=${index} >
+            ${gallery.nombre}
+        </button>
+        `
       }
-      document.getElementById('selectButton').addEventListener('click', () => {
-        const selectedRadio = document.querySelector('input[name="gallery"]:checked');
-        if (selectedRadio) {
-            loadChoosedGalleryScene(allGalleries[selectedRadio.value])
-            loadArLogic()
-        }
+
+      galleriesContainer.addEventListener('click', (e) => {
+          const index = e.target.id
+          loadChoosedGalleryScene(allGalleries[index])
+          loadArLogic(allGalleries[index])
+
       });
     }
 
-    function loadChoosedGalleryScene({galeria_archivo_mind}) {
-      const aScene = document.querySelector('a-scene')
-      aScene.setAttribute('mindar-image', galeria_archivo_mind)
+    function loadChoosedGalleryScene({galeria_archivo_mind, videos}) {
+      const aScene = document.createElement('a-scene')
+      aScene.setAttribute('mindar-image',`imageTargetSrc: ${galeria_archivo_mind}; maxTrack: 1; autoStart: false;` )
       aScene.setAttribute('color-space', "sRGB")
       aScene.setAttribute('vr-mode-ui', "enabled: false" )
       aScene.setAttribute('device-orientation-permission-ui', "enabled: false")
+      aScene.innerHTML += `
+        <a-assets>
+          <video src="" id="vid1" response-type="arraybuffer" loop crossorigin>
+          </video>
+        </a-assets>
 
-      const overlay = document.querySelector('.overlay')
-      overlay.style.display = 'none'
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      ` 
+      // const sceneEl = document.querySelector('a-scene');
 
-    }
-    
-    function loadArLogic() {
-      const sceneEl = document.querySelector('a-scene');
-      let arSystem;
-
-      sceneEl.addEventListener('loaded', function () {
-        arSystem = sceneEl.systems["mindar-image-system"];
+      aScene.addEventListener('loaded', function () {
+        arSystem = aScene.systems["mindar-image-system"];
       });
 
-      const alumnos = [
-        "Alumno 01.mp4", "Alumno 02.mp4", "Alumno 03.mp4", "Alumno 04.mp4", "Alumno 05.mp4",
-        "Alumno 06.mp4", "Alumno 07.mp4", "Alumno 08.mp4", "Alumno 09.mp4", "Alumno 10.mp4"
-      ];
-
-      for (let index = 0; index < alumnos.length; index++) {
-        const alumno = alumnos[index];
-        sceneEl.innerHTML += `
+      for (let index = 0; index < videos.length; index++) {
+        const video = videos[index];
+        aScene.innerHTML += `
           <a-entity mindar-image-target="targetIndex: ${index}" id="entity${index}">
             <a-video src="#vid1" rotation="0 0 0 " position="0 0 0" scale="1 1 1" id="video${index}"></a-video>
           </a-entity>`;
       }
 
+      aScene.addEventListener("arReady", () => console.log("MindAR is ready"));
+      aScene.addEventListener("arError", () => console.log("MindAR failed to start"));
+
+      document.querySelector('body').appendChild(aScene)
+      hideGalleriesList()
+    }
+    
+    function loadArLogic({galeria_archivo_mind, videos}) {
       const startButton = document.querySelector("#example-start-button");
       const stopButton = document.querySelector("#example-stop-button");
-      const pauseButton = document.querySelector("#example-pause-button");
-      const pauseKeepVideoButton = document.querySelector("#example-pause-keep-video-button");
-      const unpauseButton = document.querySelector("#example-unpause-button");
 
       startButton.addEventListener('click', () => arSystem.start());
       stopButton.addEventListener('click', () => arSystem.stop());
-      pauseButton.addEventListener('click', () => arSystem.pause());
-      pauseKeepVideoButton.addEventListener('click', () => arSystem.pause(true));
-      unpauseButton.addEventListener('click', () => arSystem.unpause());
 
-      sceneEl.addEventListener("arReady", () => console.log("MindAR is ready"));
-      sceneEl.addEventListener("arError", () => console.log("MindAR failed to start"));
 
-      alumnos.forEach((alumno, index) => {
+      videos.forEach((video, index) => {
         const exampleTarget = document.getElementById(`entity${index}`);
-
         exampleTarget.addEventListener("targetFound", () => {
-          const video = document.querySelector('#vid1');
-          video.setAttribute('src', `videos/${alumno}`);
-          video.setAttribute('currentTime', 0);
-          video.play();
+          const videoElement = document.querySelector('#vid1');
+          videoElement.setAttribute('src', video);
+          videoElement.setAttribute('currentTime', 0);
+          videoElement.play();
         });
 
         exampleTarget.addEventListener("targetLost", () => {
@@ -119,14 +119,14 @@
 
   </script>
 
+  
+
     <div class="overlay">
       <div class="content-container">
           <span class="title">Elige La Galeria a utilizar:</span>
           <ul class="list" id="galleries-list">
             
           </ul>
-
-        <button id="selectButton" class="button">Seleccionar</button>
       </div>
     </div>
     
@@ -134,20 +134,8 @@
     <div style="position: absolute; z-index: 1000">
       <button id="example-start-button">Start</button>
       <button id="example-stop-button">Stop</button>
-      <!-- <button id="example-pause-button">Pause</button>
-      <button id="example-pause-keep-video-button">Pause (keep video)</button>  -->
-      <!-- <button id="example-unpause-button">UnPause</button>  -->
     </div>
 
-    <a-scene >
-      <a-assets>
-        <video src="" id="vid1" response-type="arraybuffer" loop crossorigin>
-        </video>
-      </a-assets>
-
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-    </a-scene> 
-  </div>
 </body>
 
 </html>
